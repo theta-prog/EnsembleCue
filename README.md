@@ -1,4 +1,4 @@
-# DrumPilot — ドラマーに追従するAIベーシスト
+# EnsembleCue — ドラマーに追従するAIベーシスト
 
 Windows 11向けのオフライン・ネイティブアプリです。生ドラムのマイク入力、録音WAV、合成デモを解析し、拍に追従するクリックとベースを生成します。**検証用プロトタイプであり、スタジオでの演奏品質はまだ合格判定していません。**
 
@@ -8,7 +8,7 @@ Windows 11向けのオフライン・ネイティブアプリです。生ドラ�
 
 ビルド済みアプリ:
 
-`build\DrumPilot_artefacts\Release\DrumPilot.exe`
+`build\EnsembleCue_artefacts\Release\EnsembleCue.exe`
 
 またはPowerShellで:
 

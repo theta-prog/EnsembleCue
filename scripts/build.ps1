@@ -21,7 +21,7 @@ if (-not $CoreOnly) {
     $revision = git -C third_party/JUCE rev-parse HEAD
     if ($revision -ne 'd60b7a78030661574a615b586d9325ba7a7fa7dd') { throw 'Unexpected JUCE revision. See docs/TECHNOLOGY.md.' }
 }
-& $cmake -S . -B $buildName -A x64 "-DDRUMPILOT_GUI=$gui"
+& $cmake -S . -B $buildName -A x64 "-DENSEMBLECUE_GUI=$gui"
 if ($LASTEXITCODE -ne 0) { throw 'Configure failed' }
 & $cmake --build $buildName --config Release --parallel 4
 if ($LASTEXITCODE -ne 0) { throw 'Build failed' }

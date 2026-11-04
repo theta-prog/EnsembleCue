@@ -19,7 +19,7 @@ class MainComponent final : public juce::Component, private juce::Timer {
     double lastCallbackChangeMs=juce::Time::getMillisecondCounterHiRes();
 public:
     MainComponent() {
-        title.setText("DRUMPILOT  /  LISTEN. FOLLOW. PLAY.",juce::dontSendNotification);
+        title.setText("ENSEMBLECUE  /  LISTEN. FOLLOW. PLAY.",juce::dontSendNotification);
         title.setFont(juce::Font(juce::FontOptions(24,juce::Font::bold)));
         addAndMakeVisible(title); addAndMakeVisible(status); addAndMakeVisible(metrics); addAndMakeVisible(hint);
         status.setFont(juce::Font(juce::FontOptions(24))); metrics.setFont(juce::Font(juce::FontOptions(14)));
@@ -57,7 +57,7 @@ public:
             });
         };
         save.onClick=[this]{
-            chooser=std::make_unique<juce::FileChooser>("Save callback measurements",juce::File::getSpecialLocation(juce::File::userDocumentsDirectory).getChildFile("drumpilot-metrics.csv"),"*.csv");
+            chooser=std::make_unique<juce::FileChooser>("Save callback measurements",juce::File::getSpecialLocation(juce::File::userDocumentsDirectory).getChildFile("ensemblecue-metrics.csv"),"*.csv");
             chooser->launchAsync(juce::FileBrowserComponent::saveMode|juce::FileBrowserComponent::canSelectFiles|juce::FileBrowserComponent::warnAboutOverwriting,[this](const auto& fc){if(fc.getResult()!=juce::File{}) engine.exportMetrics(fc.getResult());});
         };
         addAndMakeVisible(click); addAndMakeVisible(bass); click.setToggleState(true,juce::dontSendNotification);
@@ -123,19 +123,19 @@ public:
         repaint();
     }
 };
-class DrumPilotApp final : public juce::JUCEApplication {
+class EnsembleCueApp final : public juce::JUCEApplication {
     class Window final : public juce::DocumentWindow {
     public:
-        Window() : DocumentWindow("DrumPilot",juce::Colour(0xff101b24),allButtons) {
+        Window() : DocumentWindow("EnsembleCue",juce::Colour(0xff101b24),allButtons) {
             setUsingNativeTitleBar(true); setContentOwned(new MainComponent(),true); centreWithSize(getWidth(),getHeight()); setVisible(true);
         }
         void closeButtonPressed() override { juce::JUCEApplication::getInstance()->systemRequestedQuit(); }
     };
     std::unique_ptr<Window> window;
 public:
-    const juce::String getApplicationName() override { return "DrumPilot"; }
+    const juce::String getApplicationName() override { return "EnsembleCue"; }
     const juce::String getApplicationVersion() override { return "0.1.0"; }
     void initialise(const juce::String&) override {window=std::make_unique<Window>();}
     void shutdown() override {window.reset();}
 };
-START_JUCE_APPLICATION(DrumPilotApp)
+START_JUCE_APPLICATION(EnsembleCueApp)
