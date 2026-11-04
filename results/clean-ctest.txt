@@ -1,0 +1,8 @@
+Internal ctest changing into directory: C:/Users/yuden/workspace/ai-session/build-clean
+Test project C:/Users/yuden/workspace/ai-session/build-clean
+    Start 1: core_tests
+1/1 Test #1: core_tests .......................   Passed    1.80 sec
+
+100% tests passed, 0 tests failed out of 1
+
+Total Test time (real) =   1.91 sec

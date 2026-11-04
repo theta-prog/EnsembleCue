@@ -1,0 +1,5 @@
+
+Algorithm : SHA256
+Hash      : C3C3C7CB40EF77AD1DCAE4A72289A6519B992ED86D7D6B48B1EBCAED0B3054E7
+Path      : C:\Users\yuden\workspace\ai-session\build\DrumPilot_artefacts\Release\DrumPilot.exe
+

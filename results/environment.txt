@@ -1,0 +1,10 @@
+
+Name                      : 12th Gen Intel(R) Core(TM) i7-12650H
+NumberOfCores             : 10
+NumberOfLogicalProcessors : 16
+
+
+Caption     : Microsoft Windows 11 Pro
+Version     : 10.0.26300
+BuildNumber : 26300
+

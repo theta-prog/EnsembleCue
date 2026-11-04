@@ -1,0 +1,10 @@
+{
+  "seconds": 30,
+  "peak": 0.24606668949127197,
+  "rms": 0.08201870438118133,
+  "maxReplayDifference": 1.1920928955078125e-7,
+  "midi": {
+    "noteOn": 76,
+    "noteOff": 76
+  }
+}

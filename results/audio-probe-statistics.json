@@ -1,0 +1,15 @@
+{
+  "observed_seconds": 1800.0,
+  "process_cpu_seconds": 61.68755,
+  "cpu_percent_of_one_logical_core": 3.427086111111111,
+  "working_set_max_bytes": 22560768.0,
+  "private_max_bytes": 6037504.0,
+  "private_start_bytes": 5890048,
+  "private_final_bytes": 5730304,
+  "seconds_without_callback_progress": 0,
+  "final_feature_drops": 0,
+  "final_driver_xruns": -1,
+  "final_bpm": 105.069,
+  "final_locked": 1,
+  "note": "No-progress watchdog is one-second resolution. Xrun -1 means unsupported, not zero. Physical loopback is not measured."
+}

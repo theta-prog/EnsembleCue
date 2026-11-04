@@ -1,0 +1,142 @@
+MSBuild のバージョン 17.14.51+25f168cee (.NET Framework)
+
+  Checking File Globs
+  1>Checking Build System
+  Building Custom Rule C:/Users/yuden/workspace/ai-session/CMakeLists.txt
+  Building Custom Rule C:/Users/yuden/workspace/ai-session/CMakeLists.txt
+  Building Custom Rule C:/Users/yuden/workspace/ai-session/CMakeLists.txt
+  drum_render_rc_lib.vcxproj -> C:\Users\yuden\workspace\ai-session\build-clean\drum_render_rc_lib.dir\Release\drum_render_rc_lib.lib
+  audio_probe_rc_lib.vcxproj -> C:\Users\yuden\workspace\ai-session\build-clean\audio_probe_rc_lib.dir\Release\audio_probe_rc_lib.lib
+  DrumPilot_rc_lib.vcxproj -> C:\Users\yuden\workspace\ai-session\build-clean\DrumPilot_rc_lib.dir\Release\DrumPilot_rc_lib.lib
+  Building Custom Rule C:/Users/yuden/workspace/ai-session/CMakeLists.txt
+  Core.cpp
+  band_core.vcxproj -> C:\Users\yuden\workspace\ai-session\build-clean\Release\band_core.lib
+  Building Custom Rule C:/Users/yuden/workspace/ai-session/CMakeLists.txt
+  Building Custom Rule C:/Users/yuden/workspace/ai-session/CMakeLists.txt
+  Building Custom Rule C:/Users/yuden/workspace/ai-session/CMakeLists.txt
+  Building Custom Rule C:/Users/yuden/workspace/ai-session/CMakeLists.txt
+  Building Custom Rule C:/Users/yuden/workspace/ai-session/CMakeLists.txt
+  CoreTests.cpp
+  Building Custom Rule C:/Users/yuden/workspace/ai-session/CMakeLists.txt
+  Quality.cpp
+  AudioProbe.cpp
+  Main.cpp
+  Benchmark.cpp
+  Render.cpp
+  quality_benchmark.vcxproj -> C:\Users\yuden\workspace\ai-session\build-clean\Release\quality_benchmark.exe
+  core_tests.vcxproj -> C:\Users\yuden\workspace\ai-session\build-clean\Release\core_tests.exe
+  benchmark.vcxproj -> C:\Users\yuden\workspace\ai-session\build-clean\Release\benchmark.exe
+  juce_audio_formats.cpp
+  Engine.cpp
+  Engine.cpp
+  juce_audio_basics.cpp
+  juce_core.cpp
+  juce_audio_utils.cpp
+  juce_audio_utils.cpp
+  juce_core_CompilationTime.cpp
+  コードを生成中...
+  juce_audio_processors.cpp
+  juce_audio_processors.cpp
+  juce_audio_formats_flac_1.c
+  juce_audio_formats_flac_2.c
+  juce_audio_formats_ogg.c
+  juce_audio_formats_opus.c
+  juce_audio_formats_opusfile.c
+  juce_core_zlib.c
+  コードを生成中...
+  juce_gui_extra.cpp
+  juce_gui_extra.cpp
+  drum_render.vcxproj -> C:\Users\yuden\workspace\ai-session\build-clean\drum_render_artefacts\Release\drum_render.exe
+  juce_gui_basics.cpp
+  juce_gui_basics.cpp
+  juce_gui_basics_2.cpp
+  juce_gui_basics_2.cpp
+  juce_gui_basics_3.cpp
+  juce_gui_basics_3.cpp
+  juce_gui_basics_4.cpp
+  juce_gui_basics_4.cpp
+  juce_gui_basics_5.cpp
+  juce_gui_basics_5.cpp
+  juce_graphics.cpp
+  juce_graphics.cpp
+  juce_graphics_Harfbuzz.cpp
+  juce_graphics_Harfbuzz.cpp
+  juce_events.cpp
+  juce_events.cpp
+  juce_core.cpp
+  juce_core.cpp
+  juce_core_CompilationTime.cpp
+  juce_data_structures.cpp
+  juce_core_CompilationTime.cpp
+  juce_data_structures.cpp
+  juce_audio_processors_headless.cpp
+  juce_audio_processors_headless.cpp
+  juce_audio_processors_headless_ara.cpp
+  juce_audio_processors_headless_lv2_libs.cpp
+  juce_audio_basics.cpp
+  juce_audio_processors_headless_ara.cpp
+  juce_audio_processors_headless_lv2_libs.cpp
+  juce_audio_basics.cpp
+  コードを生成中...
+  コードを生成中...
+  コンパイル中...
+  juce_audio_formats.cpp
+  コンパイル中...
+  juce_audio_formats.cpp
+  juce_audio_devices.cpp
+  juce_audio_devices.cpp
+  コードを生成中...
+  コードを生成中...
+  juce_graphics_Sheenbidi.c
+  juce_graphics_Sheenbidi.c
+  juce_graphics_libjpg_1.c
+  juce_graphics_libjpg_1.c
+  juce_graphics_libjpg_2.c
+  juce_graphics_libjpg_2.c
+  juce_graphics_libjpg_3.c
+  juce_graphics_libjpg_3.c
+  juce_graphics_libpng.c
+  juce_graphics_libpng.c
+  juce_graphics_libwebp_dec.c
+  juce_graphics_libwebp_dec.c
+  juce_graphics_libwebp_dsp_dec.c
+  juce_graphics_libwebp_dsp_dec.c
+  juce_graphics_libwebp_dsp_dec_avx2.c
+  juce_graphics_libwebp_dsp_dec_avx2.c
+  juce_graphics_libwebp_dsp_dec_sse41.c
+  juce_graphics_libwebp_dsp_dec_sse41.c
+  juce_graphics_libwebp_dsp_enc.c
+  juce_graphics_libwebp_dsp_enc.c
+  juce_graphics_libwebp_dsp_enc_avx2.c
+  juce_graphics_libwebp_dsp_enc_avx2.c
+  juce_graphics_libwebp_dsp_enc_sse41.c
+  juce_graphics_libwebp_dsp_enc_sse41.c
+  juce_graphics_libwebp_enc.c
+  juce_graphics_libwebp_enc.c
+  juce_graphics_libwebp_sharpyuv.c
+  juce_graphics_libwebp_sharpyuv.c
+  juce_graphics_libwebp_utils.c
+  juce_graphics_libwebp_utils.c
+  juce_graphics_lunasvg.c
+  juce_graphics_lunasvg.c
+  juce_core_zlib.c
+  juce_core_zlib.c
+  juce_audio_formats_flac_1.c
+  juce_audio_formats_flac_2.c
+  juce_audio_formats_ogg.c
+  juce_audio_formats_flac_1.c
+  juce_audio_formats_flac_2.c
+  コードを生成中...
+  juce_audio_formats_ogg.c
+  コードを生成中...
+  コンパイル中...
+  juce_audio_formats_opus.c
+  コンパイル中...
+  juce_audio_formats_opus.c
+  juce_audio_formats_opusfile.c
+  juce_audio_formats_opusfile.c
+  コードを生成中...
+  コードを生成中...
+  audio_probe.vcxproj -> C:\Users\yuden\workspace\ai-session\build-clean\audio_probe_artefacts\Release\audio_probe.exe
+  DrumPilot.vcxproj -> C:\Users\yuden\workspace\ai-session\build-clean\DrumPilot_artefacts\Release\DrumPilot.exe
+  Building Custom Rule C:/Users/yuden/workspace/ai-session/CMakeLists.txt

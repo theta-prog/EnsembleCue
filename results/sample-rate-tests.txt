@@ -1,0 +1,5 @@
+44100 Hz: 119.998 BPM, 2405 feature frames
+48000 Hz: 120 BPM, 2400 feature frames
+88200 Hz: 120 BPM, 2400 feature frames
+96000 Hz: 120 BPM, 2400 feature frames
+192000 Hz: 120 BPM, 2400 feature frames

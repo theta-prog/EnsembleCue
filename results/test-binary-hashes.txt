@@ -1,0 +1,9 @@
+
+Algorithm : SHA256
+Hash      : 9F7198AC178CC4667482BC189C2CA4F2DDC8453BFEEFF9AE6291C288E299BD85
+Path      : C:\Users\yuden\workspace\ai-session\build\audio_probe_artefacts\Release\audio_probe.exe
+
+Algorithm : SHA256
+Hash      : FD49BB23010DFB288A692A26ECBBE8CEBCC8D6F44E68E45839F84BE77B01B8B1
+Path      : C:\Users\yuden\workspace\ai-session\build\DrumPilot_artefacts\Release\DrumPilot.exe
+

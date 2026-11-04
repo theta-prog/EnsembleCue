@@ -1,0 +1,14 @@
+metric,value
+sample_rate,48000
+buffer_frames,512
+input_latency_frames_reported,728
+output_latency_frames_reported,871
+callback_max_us,857.9
+callback_mean_us,117.532
+callback_deadline_exceedances,0
+driver_xruns,-1
+driver_xruns_initial,-1
+driver_xruns_session_delta,-1
+feature_queue_drops,0
+midi_queue_drops,0
+loopback_latency_ms,not_measured

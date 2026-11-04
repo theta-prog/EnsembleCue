@@ -1,0 +1,12 @@
+
+Name                FileVersion
+----                -----------
+ysusb_asio32.dll    2.1.6
+ysusb_asio64.dll    2.1.6
+ysusb_bulklib32.dll 2.1.6
+ysusb_bulklib64.dll 2.1.6
+ysusb_cp.exe        2.1.6
+ysusb_w10_64.sys    2.1.6.6
+ysusb_w10.cat       
+ysusb_w10.inf       
+
