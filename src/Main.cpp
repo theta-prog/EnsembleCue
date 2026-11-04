@@ -3,10 +3,13 @@
 class MainComponent final : public juce::Component, private juce::Timer {
     Engine engine;
     juce::Label title, status, metrics, hint;
-    juce::ComboBox source, genre, key, midi, channel;
+    juce::ComboBox source, genre, key, midi, channel, section;
     juce::TextButton start{"Start session"}, stop{"Stop"}, tap{"Tap tempo"}, reset{"Re-sync"};
     juce::TextButton load{"Load drum WAV"}, save{"Save metrics"};
     juce::ToggleButton click{"Following click"}, bass{"AI bassist (rule-based)"};
+    juce::ToggleButton guitar{"AI guitar"}, piano{"AI piano"};
+    juce::Slider bassLevel,guitarLevel,pianoLevel;
+    juce::Label bassLevelLabel,guitarLevelLabel,pianoLevelLabel;
     juce::Slider volume, density, variation, gate, timing;
     juce::Label volumeLabel, densityLabel, variationLabel, gateLabel, timingLabel;
     std::unique_ptr<juce::AudioDeviceSelectorComponent> selector;
@@ -24,7 +27,9 @@ public:
         addAndMakeVisible(title); addAndMakeVisible(status); addAndMakeVisible(metrics); addAndMakeVisible(hint);
         status.setFont(juce::Font(juce::FontOptions(24))); metrics.setFont(juce::Font(juce::FontOptions(14)));
         hint.setText("Mic is analysis-only. Start with PA low. Auto key chooses a key; drums do not reveal harmony.",juce::dontSendNotification);
-        for(auto* c : {&source,&genre,&key,&midi,&channel}) addAndMakeVisible(*c);
+        for(auto* c : {&source,&genre,&key,&midi,&channel,&section}) addAndMakeVisible(*c);
+        section.addItemList({"Section: Auto","Section: Groove","Section: Build","Section: Breakdown"},1);
+        section.setSelectedId(1);section.onChange=[this]{engine.sectionMode=section.getSelectedId()-1;};
         source.addItemList({"Live microphone","Synthetic drums (demo)","Loaded drum WAV"},1); source.setSelectedId(1); source.setItemEnabled(3,false);
         source.onChange=[this]{engine.stopSession(); engine.source=source.getSelectedId()-1; ++engine.resetRequest;};
         genre.addItemList({"Rock / straight","Funk / syncopated","Shuffle"},1); genre.setSelectedId(1);
@@ -62,11 +67,20 @@ public:
         };
         addAndMakeVisible(click); addAndMakeVisible(bass); click.setToggleState(true,juce::dontSendNotification);
         click.onClick=[this]{engine.click=click.getToggleState();}; bass.onClick=[this]{engine.bass=bass.getToggleState();};
+        addAndMakeVisible(guitar);addAndMakeVisible(piano);
+        guitar.onClick=[this]{engine.guitar=guitar.getToggleState();};
+        piano.onClick=[this]{engine.piano=piano.getToggleState();};
         auto slider=[this](juce::Slider& s,juce::Label& label,const char* text,double value) {
             addAndMakeVisible(s); addAndMakeVisible(label); label.setText(text,juce::dontSendNotification);
             s.setRange(0,1,.01); s.setValue(value); s.setTextBoxStyle(juce::Slider::TextBoxRight,false,55,24);
         };
-        slider(volume,volumeLabel,"Output volume",.3); slider(density,densityLabel,"Bass density",.55);
+        slider(volume,volumeLabel,"Output volume",.3); slider(density,densityLabel,"Band density",.55);
+        slider(bassLevel,bassLevelLabel,"Bass level",1);
+        slider(guitarLevel,guitarLevelLabel,"Guitar level",.7);
+        slider(pianoLevel,pianoLevelLabel,"Piano level",.7);
+        bassLevel.onValueChange=[this]{engine.bassVolume=static_cast<float>(bassLevel.getValue());};
+        guitarLevel.onValueChange=[this]{engine.guitarVolume=static_cast<float>(guitarLevel.getValue());};
+        pianoLevel.onValueChange=[this]{engine.pianoVolume=static_cast<float>(pianoLevel.getValue());};
         slider(variation,variationLabel,"Variation",.35); slider(gate,gateLabel,"Onset gate (dB)",.3);
         gate.setRange(-60,-12,1); gate.setValue(-44);
         slider(timing,timingLabel,"Timing trim (ms)",0); timing.setRange(-100,150,1); timing.setValue(0);
@@ -76,7 +90,7 @@ public:
         variation.onValueChange=[this]{engine.variation=static_cast<float>(variation.getValue());};
         gate.onValueChange=[this]{engine.gate=juce::Decibels::decibelsToGain(static_cast<float>(gate.getValue()));};
         selector=std::make_unique<juce::AudioDeviceSelectorComponent>(engine.devices,0,2,0,2,false,false,true,false);
-        addAndMakeVisible(*selector); setSize(900,850); startTimerHz(20);
+        addAndMakeVisible(*selector); setSize(900,940); startTimerHz(20);
     }
     ~MainComponent() override { stopTimer(); chooser.reset(); selector.reset(); }
     void paint(juce::Graphics& g) override {
@@ -103,7 +117,11 @@ public:
         variationLabel.setBounds(445,386,110,30); variation.setBounds(560,386,318,30);
         gateLabel.setBounds(22,427,140,30); gate.setBounds(165,427,250,30);
         timingLabel.setBounds(445,427,140,30); timing.setBounds(590,427,288,30);
-        selector->setBounds(22,474,856,315); hint.setBounds(22,804,856,30);
+        bassLevelLabel.setBounds(22,462,120,28);bassLevel.setBounds(145,462,270,28);
+        section.setBounds(500,462,378,28);
+        guitar.setBounds(22,494,130,28);guitarLevelLabel.setBounds(160,494,100,28);guitarLevel.setBounds(270,494,260,28);
+        piano.setBounds(22,526,130,28);pianoLevelLabel.setBounds(160,526,100,28);pianoLevel.setBounds(270,526,260,28);
+        selector->setBounds(22,564,856,315); hint.setBounds(22,894,856,30);
     }
     void timerCallback() override {
         auto callbacks=engine.callbackCount.load();
@@ -118,8 +136,13 @@ public:
         if(stalled) err="No audio callbacks. Close other audio apps, then reselect or reset the device.";
         if(!dev && err.isEmpty()) err="No audio device. Select a device below.";
         if(engine.fileEnded && err.isEmpty()) err="File ended. Press Start to replay.";
+        const char* sections[]={"Groove","Build","Breakdown"};
+        const char* roots[]={"C","C#","D","Eb","E","F","F#","G","Ab","A","Bb","B"};
+        int root=engine.currentRoot.load(), sectionId=engine.currentSection.load();
+        juce::String harmony=root>=0?juce::String("Root ")+roots[root%12]:"Harmony acquiring";
+        if(sectionId>=0 && sectionId<3) harmony+=" / "+juce::String(sections[sectionId]);
         metrics.setText(juce::String(engine.sampleRate.load(),0)+" Hz / "+juce::String(engine.bufferSize.load())+" frames  |  CPU callback "+juce::String(engine.devices.getCpuUsage()*100,1)+"%  |  Xruns "+juce::String(dev?dev->getXRunCount():-1)
-            +"  |  Queue drops "+juce::String(engine.droppedFeatures.load())+"\n"+(err.isEmpty()?(engine.fill?"Fill candidate - keeping tempo steady":"Drummer leads / 4-beat meter / minor harmony / change settings up to 2 bars ahead"):err),juce::dontSendNotification);
+            +"  |  Queue drops "+juce::String(engine.droppedFeatures.load())+"\n"+(err.isEmpty()?harmony+(engine.fill?" / Fill: leaving space":" / Settings apply up to 2 bars ahead"):err),juce::dontSendNotification);
         repaint();
     }
 };
@@ -134,7 +157,7 @@ class EnsembleCueApp final : public juce::JUCEApplication {
     std::unique_ptr<Window> window;
 public:
     const juce::String getApplicationName() override { return "EnsembleCue"; }
-    const juce::String getApplicationVersion() override { return "0.1.0"; }
+    const juce::String getApplicationVersion() override { return "0.2.0"; }
     void initialise(const juce::String&) override {window=std::make_unique<Window>();}
     void shutdown() override {window.reset();}
 };

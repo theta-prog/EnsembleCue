@@ -21,7 +21,7 @@
 1. **Phase 1スタジオ受け入れ**: 許諾済みの生ドラム録音を60/90/120/150/180、8/16/shuffle、ramp/step/fill、PAあり/なしで収集。人手のbeat注釈からacquisition時間、位相誤差、誤ロック率、停止復帰時間を測定。録音を個人情報なしでfixture化する。
 2. **Tracker比較**: aubio、因果的MLモデル、自作DSPを同じ録音で比較。固定されたテスト曲に過適合しないようholdout分離。低信頼時の維持/休止判断をドラマーと調整。
 3. **Phase 2音楽性**: 実ベースの奏法、音価の重なり、syncopation、短い問い/応答、motifの記憶、コード進行の選択肢。SoundFont/FluidSynthを別音源backendとして評価。
-4. **Phase 3**: セクション状態機械、fill後の応答、guitar/piano、楽器ごとのdensity budgetと音域分離。全楽器が同じHarmonyTimelineを見る。
+4. **Phase 3の発展**: v0.2でギター・ピアノ、共有和声、音域分離、簡易セクション制御を追加。次はfill後の応答、セクション遷移の平滑化、楽器ごとのdensity budget、音源の改善。
 5. **人間のギター**: chord/key推定とconfidence、HarmonySource優先度（HumanGuitar > Auto）を追加し、低信頼時の保持を設計。
 6. **モデル拡張**: 専用推論worker、bounded generation requests、deadline/cancel/epoch、ルールfallback。対象RTX3050でp50/p95/max推論時間とVRAMを実測するまでリアルタイム対応を表示しない。
 7. **製品化**: 設定保存、長時間録音ストリーミング、session録音、VST3隔離、installer、配布ライセンス確認、アクセシビリティ/日本語UI。

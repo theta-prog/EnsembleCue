@@ -1,8 +1,8 @@
-# EnsembleCue — ドラマーに追従するAIベーシスト
+# EnsembleCue — 演奏に追従するAIバンド
 
-Windows 11向けのオフライン・ネイティブアプリです。生ドラムのマイク入力、録音WAV、合成デモを解析し、拍に追従するクリックとベースを生成します。**検証用プロトタイプであり、スタジオでの演奏品質はまだ合格判定していません。**
+Windows 11向けのオフライン・ネイティブアプリです。生ドラムのマイク入力、録音WAV、合成デモを解析し、拍に追従するベース・ギター・ピアノを生成します。v0.2.0では3楽器の合奏、各楽器の音量、セクション選択、フィル中の伴奏抑制を追加しました。スタジオでの演奏品質の評価は今後の工程です。
 
-ベースはコード制約・モチーフ・確率的変化を使うルールベース生成です。学習済み生成AIモデルや固定MIDIループの再生は使用しません。
+生成にはコード制約・モチーフ・確率的変化を使うルールベース方式を採用。内蔵音源は簡易合成です。生成AIモデルの導入と、サンプル音源による音質向上は今後の工程です。
 
 ## すぐ起動する
 
@@ -18,27 +18,28 @@ Windows 11向けのオフライン・ネイティブアプリです。生ドラ�
 
 1. まず入力を **Synthetic drums (demo)** にし、**Start session** を押します。
 2. 数拍後に **FOLLOWING** とBPMが表示され、**Following click** が鳴ります。
-3. **AI bassist** をONにするとベースが参加します。音量は低めから調整してください。
+3. **AI bassist / AI guitar / AI piano** をONにすると各楽器が参加します。各levelとOutput volumeで音量を調整してください。
 4. 実ドラムでは **Live microphone**、**ASIO → Yamaha Steinberg USB ASIO**、入力1/2と出力1/2を選びます。詳細は[接続手順](docs/STUDIO.md)。
 5. **Load drum WAV** で録音を再生・解析できます。最大10分、左channelを使います。
 
 このPCでGUI起動、デモ入力での追従、ベース切替、停止、UR22CのWindows Audio/ASIO選択を確認しました。同じUR22CをASIOとWASAPIで同時にテストすると、片方のストリームが停止する条件がありました。検証時は本アプリを1つだけ開き、DAWや測定ツールと同じ機器を取り合わないようにしてください。
 
-UR22C ASIOで30分の連続動作を確認済み（合成入力、48 kHz、実際のbuffer 512 frames）。callback停止・締切超過・キュー欠落は0。ドライバーのxrun計数は非対応、物理往復遅延は未測定です。詳しい結果は[検証記録](docs/VALIDATION.md)。
+v0.1のベース構成でUR22C ASIOの30分連続動作を確認済み（合成入力、48 kHz、実際のbuffer 512 frames）。v0.2の合奏は自動テスト・WAV/MIDI書出しを確認済み。測定の対象バージョンと結果は[検証記録](docs/VALIDATION.md)および[v0.2機能・検証記録](docs/ENSEMBLE-V02.md)。
 
 ## 実装済み
 
 - 入出力機器・sample rate・buffer選択、入力レベル表示
 - 因果的オンセット解析、60〜180 BPM候補、拍位相、信頼度、密度、簡易fill候補
 - 開始/停止、テンポ追従、Tap Tempo、Re-sync
-- クリック、内蔵ベース音源、既存MIDI出力portへの送信
+- クリック、内蔵ベース・ギター・ピアノ音源、既存MIDI出力portへの送信（channel 1/2/3）
+- 共有コード進行、楽器ごとの音域と役割、ON/OFF、音量、セクション選択
 - Auto/Manual key（minor）、Rock/Funk/Shuffle、密度・変化量・音量
 - 2小節先読み、拍座標のイベント再タイミング、生成欠落時のルート音fallback
 - WAV入力CLI、伴奏WAV/MIDI/解析CSVの書出し
 - ドライバー報告遅延の補償と手動timing trim
 - コールバック時間、xrun、キュー欠落、CPU/メモリの測定ツール
 
-Phase 1の動作するプロトタイプとPhase 2のベース生成まで実装しています。Phase 3のギター/ピアノ・高度なセクション認識は未実装です。生ドラム実録音、PA回り込み、物理ループバック、演奏者による自然さの評価は別途必要です。
+Phase 1/2に加え、Phase 3のギター・ピアノと簡易セクション制御を実装しています。高度な展開認識、生ドラム実録音、PA回り込み、物理ループバック、演奏者による自然さの評価は今後の工程です。
 
 ## ビルド
 
@@ -71,6 +72,9 @@ JUCE不要のDSPテストだけなら `scripts\build.ps1 -CoreOnly`。別PCでRe
 # 注釈付き合成音源の誤差評価
 .\build\Release\quality_benchmark.exe
 
+# 3楽器の伴奏WAV / channel 1,2,3のMIDI
+.\build\drum_render_artefacts\Release\drum_render.exe --demo "$PWD\results\ensemble.wav" 30 --ensemble
+
 # 30分音声長を高速処理（実時間の連続動作試験とは別）
 .\build\Release\benchmark.exe 1800
 
@@ -89,4 +93,4 @@ JUCE不要のDSPテストだけなら `scripts\build.ps1 -CoreOnly`。別PCでRe
 - [スタジオ接続・操作](docs/STUDIO.md)
 - [既知の課題・ロードマップ](docs/ROADMAP.md)
 
-このプロトタイプのソースはAGPL-3.0-only。JUCE/ASIOを含む第三者コードの条件は[THIRD_PARTY](docs/THIRD_PARTY.md)を参照してください。外部公開や配布操作は行っていません。
+このプロトタイプのソースはAGPL-3.0-only。JUCE/ASIOを含む第三者コードの条件は[THIRD_PARTY](docs/THIRD_PARTY.md)を参照してください。公開リポジトリは[theta-prog/EnsembleCue](https://github.com/theta-prog/EnsembleCue)。

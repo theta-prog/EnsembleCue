@@ -30,7 +30,7 @@ if(difference>.01) throw Error('WAV re-input changed rendered audio substantiall
 function readMidi(name) {
   const b=fs.readFileSync(path.join(folder,name));
   if(b.toString('ascii',0,4)!=='MThd' || b.readUInt16BE(12)!==960) throw Error('Invalid MIDI header');
-  let offset=14, on=0, off=0; const sounding=new Map();
+  let offset=14, on=0, off=0; const sounding=new Map(), channels={};
   const vlq=()=>{let n=0,c,count=0; do {if(offset>=b.length || ++count>4) throw Error('Invalid VLQ'); c=b[offset++]; n=(n<<7)|(c&127);}while(c&128); return n;};
   for(let track=0;track<b.readUInt16BE(10);track++) {
     if(b.toString('ascii',offset,offset+4)!=='MTrk') throw Error('Missing track');
@@ -42,13 +42,14 @@ function readMidi(name) {
       const type=status>>4, pitch=b[offset++];
       if(type===12 || type===13) continue;
       const velocity=b[offset++], key=((status&15)<<8)|pitch;
-      if(type===9 && velocity>0) {on++;sounding.set(key,(sounding.get(key)||0)+1);}
+      if(type===9 && velocity>0) {on++;channels[(status&15)+1]=(channels[(status&15)+1]||0)+1;sounding.set(key,(sounding.get(key)||0)+1);}
       if(type===8 || (type===9 && velocity===0)) {off++;sounding.set(key,(sounding.get(key)||0)-1);}
     }
     if(offset!==end) throw Error('Invalid MIDI track length');
   }
   if(on<20 || on!==off || [...sounding.values()].some(n=>n!==0)) throw Error('Unbalanced MIDI notes');
-  return {noteOn:on,noteOff:off};
+  if(process.argv.includes('--ensemble') && ![1,2,3].every(channel=>channels[channel]>0)) throw Error('Missing instrument MIDI channel');
+  return {noteOn:on,noteOff:off,channels};
 }
 const result={seconds:direct.samples.length/direct.rate,peak:direct.peak,rms:direct.rms,maxReplayDifference:difference,midi:readMidi('demo-band.mid')};
 fs.writeFileSync(path.join(folder,'render-check.json'),JSON.stringify(result,null,2)+'\n');

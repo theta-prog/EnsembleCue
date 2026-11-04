@@ -9,6 +9,9 @@ public:
     ~Engine() override;
     juce::AudioDeviceManager devices;
     std::atomic<bool> playing{false}, bass{false}, click{true};
+    std::atomic<bool> guitar{false}, piano{false};
+    std::atomic<float> bassVolume{1}, guitarVolume{.7f}, pianoVolume{.7f};
+    std::atomic<int> sectionMode{0}, currentSection{0}, currentRoot{0};
     std::atomic<int> source{0}, key{-1}, genre{0}, inputChannel{0}; // 0 mic, 1 demo, 2 WAV
     std::atomic<float> volume{.3f}, density{.55f}, variation{.35f}, gate{.006f};
     std::atomic<float> timingOffsetMs{0};
@@ -34,28 +37,29 @@ public:
     void audioDeviceIOCallbackWithContext(const float* const*,int,float* const*,int,int,const juce::AudioIODeviceCallbackContext&) override;
 private:
     void run() override;
-    struct MidiEvent { int pitch; float velocity; uint32_t epoch; };
+    struct MidiEvent { int pitch; float velocity; uint32_t epoch; int channel=1; };
+    struct PendingMidiNote { int pitch=-1, channel=1; double offBeat=0; };
+    std::array<PendingMidiNote,32> pendingMidi;
+    void queueMidi(MidiEvent event) noexcept;
+    void releaseMidi(int channel) noexcept;
+    void sendAllNotesOff();
     band::Spsc<band::Feature,2048> features;
     band::Spsc<band::State,512> states;
-    band::Spsc<band::Phrase,32> phrases;
+    band::Spsc<band::Arrangement,32> phrases;
     band::Spsc<MidiEvent,256> midiEvents;
     band::FeatureExtractor extractor;
     band::Tracker tracker;
-    band::Generator generator;
+    band::Arranger generator;
     band::BeatClock clock;
-    band::Scheduler scheduler;
-    band::Synth synth;
+    band::BandPerformance performance;
     band::State latest;
     std::unique_ptr<juce::MidiOutput> midi;
     juce::AudioBuffer<float> file;
     double fileRate=48000, filePosition=0, sr=48000, gain=0;
     int64_t samples=0;
     uint32_t audioEpoch=0;
-    int midiPitch=-1;
-    double midiOffBeat=0;
     double demoPhase=0, demoAge=100, hatAge=100;
     int demoBeat=0;
-    bool wasAudible=false;
     juce::CriticalSection errorMutex;
 public:
     juce::String getError() { juce::ScopedLock lock(errorMutex); return error; }

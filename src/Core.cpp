@@ -131,6 +131,9 @@ Phrase Generator::generate(int64_t bar,const State& state,Settings settings) {
     if(bar>0 && bar%16==0 && random()<settings.variation) std::swap(progression[1],progression[2]);
     constexpr int scale[]={0,2,3,5,7,8,10};
     p.root=(key+scale[progression[static_cast<size_t>((bar/2)%4)]])%12;
+    const int degree=progression[static_cast<size_t>((bar/2)%4)];
+    p.third=(scale[(degree+2)%7]-scale[degree]+12)%12;
+    p.fifth=(scale[(degree+4)%7]-scale[degree]+12)%12;
     float density=std::clamp(settings.density*.7f+state.density/12*.3f,.1f,1.f);
     int steps=settings.genre==Genre::Funk?16:8;
     if(bar>0 && bar%4==0 && random()<settings.variation) {
@@ -171,15 +174,101 @@ void Synth::note(int pitch,float vel,double seconds) noexcept {
     freq=440*std::pow(2.,(pitch-69)/12.); velocity=vel; age=0; length=seconds; releasing=false;
 }
 float Synth::process() noexcept {
+    if(env<1.e-8f && (releasing || velocity==0) && clickEnv<1.e-8f) return 0;
     if(age>=length) releasing=true;
     env+=( (releasing?0.f:velocity)-env)*static_cast<float>(1-std::exp(-1/(sr*(releasing?.025:.005))));
     phase+=freq/sr; phase-=std::floor(phase); age+=1/sr;
-    const double body=std::sin(2*pi*phase)+.28*std::sin(4*pi*phase)*std::exp(-age*8)+.09*std::sin(6*pi*phase);
+    double body=std::sin(2*pi*phase)+.28*std::sin(4*pi*phase)*std::exp(-age*8)+.09*std::sin(6*pi*phase);
+    if(timbre==1) body=(std::sin(2*pi*phase)+.45*std::sin(4*pi*phase)+.2*std::sin(8*pi*phase))*std::exp(-age*4);
+    if(timbre==2) body=(std::sin(2*pi*phase)+.35*std::sin(4*pi*phase)+.12*std::sin(6*pi*phase))*std::exp(-age*2);
     clickPhase+=1400/sr; clickEnv*=static_cast<float>(std::exp(-1/(.009*sr)));
     return static_cast<float>(body)*env*.32f+static_cast<float>(std::sin(2*pi*clickPhase))*clickEnv;
 }
 void Scheduler::submit(const Phrase& p) noexcept {
     if(p.epoch!=epoch) return;
     const size_t slot=static_cast<size_t>(p.bar%4); phrases[slot]=p; valid[slot]=true;
+}
+
+Arrangement Arranger::generate(int64_t bar,const State& state,Settings settings,int sectionMode) {
+    Arrangement result;
+    if(sectionMode>0) result.section=static_cast<Section>(std::clamp(sectionMode-1,0,2));
+    else if(state.fill || state.density>5) result.section=Section::Build;
+    else if(state.density<1.5f) result.section=Section::Breakdown;
+    auto bass=bassist.generate(bar,state,settings);
+    result.tracks[0]=bass;
+    auto& guitar=result.tracks[1]; auto& piano=result.tracks[2];
+    for(auto* phrase : {&guitar,&piano}) {
+        phrase->bar=bar; phrase->epoch=state.epoch; phrase->root=bass.root;
+        phrase->third=bass.third; phrase->fifth=bass.fifth;
+    }
+    // Lower guitar voicing leaves the bass register free. Piano answers above it.
+    const std::array<int,3> guitarChord{48+bass.root,48+bass.root+bass.fifth,60+bass.root};
+    const std::array<int,3> pianoChord{60+bass.root+bass.third,60+bass.root+bass.fifth,72+bass.root};
+    auto addChord=[&](Phrase& phrase,const auto& chord,double offset,double duration,float velocity,bool strum) {
+        for(size_t voice=0;voice<chord.size();++voice) {
+            const double delay=strum?voice*.025:0;
+            phrase.notes[static_cast<size_t>(phrase.count++)]={bar*4.+offset+delay,duration,chord[voice],velocity};
+        }
+    };
+    float velocity=std::clamp(.3f+state.level*1.5f,.3f,.75f);
+    if(result.section==Section::Breakdown) {
+        addChord(piano,pianoChord,0,2.8,velocity*.8f,false);
+        return result;
+    }
+    int strokes=result.section==Section::Build?4:2;
+    for(int stroke=0;stroke<strokes;++stroke) {
+        double offset=stroke*4./strokes;
+        if(settings.genre==Genre::Funk) offset+=.5;
+        if(settings.genre==Genre::Shuffle) offset+=2./3;
+        if(state.fill && offset>=2) continue;
+        addChord(guitar,guitarChord,offset,settings.genre==Genre::Funk?.22:.65,velocity,true);
+    }
+    if(!state.fill) {
+        if(settings.density>.65f || result.section==Section::Build) {
+            // A short arpeggiated answer develops over a four-bar motif.
+            for(int step=0;step<4;++step) {
+                int voice=static_cast<int>((step+bar%3)%3);
+                piano.notes[static_cast<size_t>(piano.count++)]={bar*4.+.75+step*.75,.45,pianoChord[static_cast<size_t>(voice)],velocity*.85f};
+            }
+        } else addChord(piano,pianoChord,1.5,1.4,velocity*.75f,false);
+    }
+    return result;
+}
+void PolySynth::prepare(double sampleRate,int timbre) {
+    nextVoice=0;
+    for(auto& voice:voices) {voice.prepare(sampleRate);voice.setTimbre(timbre);}
+}
+void PolySynth::note(int pitch,float velocity,double duration) noexcept {
+    voices[nextVoice].note(pitch,velocity,duration);
+    nextVoice=(nextVoice+1)%voices.size();
+}
+void PolySynth::release() noexcept {for(auto& voice:voices) voice.release();}
+float PolySynth::process() noexcept {
+    float result=0; for(auto& voice:voices) result+=voice.process(); return result*.35f;
+}
+void BandPerformance::prepare(double sampleRate) {
+    bassVoice.prepare(sampleRate);clickVoice.prepare(sampleRate);guitarVoice.prepare(sampleRate,1);pianoVoice.prepare(sampleRate,2);
+    schedulers[1].setFallbackEnabled(false);schedulers[2].setFallbackEnabled(false);
+    reset(0);
+}
+void BandPerformance::reset(uint32_t nextEpoch) {epoch=nextEpoch;for(auto& scheduler:schedulers) scheduler.reset(epoch);harmonyBars.fill(-1);release();}
+void BandPerformance::submit(const Arrangement& arrangement) noexcept {
+    if(arrangement.tracks[0].epoch!=epoch) return;
+    for(size_t track=0;track<schedulers.size();++track) schedulers[track].submit(arrangement.tracks[track]);
+    auto bar=arrangement.tracks[0].bar;
+    auto slot=static_cast<size_t>(bar%4);
+    harmonyBars[slot]=bar;roots[slot]=arrangement.tracks[0].root;sections[slot]=static_cast<int>(arrangement.section);
+}
+int BandPerformance::rootAt(double beat) const noexcept {
+    auto bar=static_cast<int64_t>(beat/4);auto slot=static_cast<size_t>(bar%4);
+    return harmonyBars[slot]==bar?roots[slot]:-1;
+}
+int BandPerformance::sectionAt(double beat) const noexcept {
+    auto bar=static_cast<int64_t>(beat/4);auto slot=static_cast<size_t>(bar%4);
+    return harmonyBars[slot]==bar?sections[slot]:-1;
+}
+void BandPerformance::release() noexcept {bassVoice.release();guitarVoice.release();pianoVoice.release();}
+float BandPerformance::process(const std::array<float,3>& volumes) noexcept {
+    return clickVoice.process()+bassVoice.process()*volumes[0]+guitarVoice.process()*volumes[1]+pianoVoice.process()*volumes[2];
 }
 }

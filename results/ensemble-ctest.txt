@@ -1,0 +1,12 @@
+Internal ctest changing into directory: C:/Users/yuden/workspace/ai-session/build
+Test project C:/Users/yuden/workspace/ai-session/build
+    Start 1: core_tests
+1/3 Test #1: core_tests .......................   Passed    1.89 sec
+    Start 2: sample_rate_tests
+2/3 Test #2: sample_rate_tests ................   Passed    0.75 sec
+    Start 3: ensemble_tests
+3/3 Test #3: ensemble_tests ...................   Passed    0.20 sec
+
+100% tests passed, 0 tests failed out of 3
+
+Total Test time (real) =   2.88 sec

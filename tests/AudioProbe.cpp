@@ -17,13 +17,16 @@ int main(int argc,char** argv) {
         auto error=engine.devices.setAudioDeviceSetup(setup,true);
         if(error.isNotEmpty()) {std::cerr<<error<<"\n";return 1;}
     }
-    engine.volume=0; engine.source=1; engine.bass=true;
+    bool ensemble=false;
+    for(int i=2;i<argc;++i) if(std::string(argv[i])=="--ensemble") ensemble=true;
+    engine.volume=0; engine.source=1; engine.bass=true;engine.guitar=ensemble;engine.piano=ensemble;
     auto* dev=engine.devices.getCurrentAudioDevice();
     if(!dev) {std::cerr<<engine.getError()<<"\n";return 1;}
     std::cout<<"Device: "<<dev->getName()<<" / "<<dev->getTypeName()<<"\n";
     engine.startSession();
     juce::File output=juce::File::getCurrentWorkingDirectory().getChildFile("results"); output.createDirectory();
-    std::ofstream log(output.getChildFile("audio-probe.csv").getFullPathName().toStdString());
+    juce::String prefix=ensemble?"ensemble-":"";
+    std::ofstream log(output.getChildFile(prefix+"audio-probe.csv").getFullPathName().toStdString());
     log<<"second,bpm,confidence,locked,working_set_bytes,private_bytes,process_cpu_seconds,callback_count,feature_drops,xruns\n";
     double startCpu=0,finalCpu=0; SIZE_T initialPrivate=0,finalPrivate=0;
     uint64_t previousCallbacks=0; int stalledSeconds=0;
@@ -41,7 +44,7 @@ int main(int argc,char** argv) {
         log.flush();
         if(i<seconds) juce::MessageManager::getInstance()->runDispatchLoopUntil(1000);
     }
-    engine.exportMetrics(output.getChildFile("audio-device-metrics.csv"));
+    engine.exportMetrics(output.getChildFile(prefix+"audio-device-metrics.csv"));
     std::cout<<"BPM "<<engine.bpm<<"; locked "<<engine.locked<<"; overruns "<<engine.overruns<<"; feature drops "<<engine.droppedFeatures<<"\n";
     std::cout<<"CPU seconds "<<finalCpu-startCpu<<"; private bytes delta "<<static_cast<int64_t>(finalPrivate)-static_cast<int64_t>(initialPrivate)<<"\n";
     std::cout<<"Stalled seconds "<<stalledSeconds<<"\n";

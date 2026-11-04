@@ -6,6 +6,15 @@ Engine::Engine() : juce::Thread("Rhythm and phrase worker") {
     devices.addAudioCallback(this);
 }
 Engine::~Engine() { playing=false; devices.removeAudioCallback(this); stopThread(-1); devices.closeAudioDevice(); }
+void Engine::sendAllNotesOff() {
+    if(midi) for(int channel=1;channel<=3;++channel) midi->sendMessageNow(juce::MidiMessage::allNotesOff(channel));
+}
+void Engine::queueMidi(MidiEvent event) noexcept {if(!midiEvents.push(event)) ++droppedMidi;}
+void Engine::releaseMidi(int channel) noexcept {
+    for(auto& note:pendingMidi) if(note.pitch>=0 && note.channel==channel) {
+        queueMidi({note.pitch,0,audioEpoch,channel});note.pitch=-1;
+    }
+}
 void Engine::startSession() {
     playing=false;
     devices.removeAudioCallback(this); stopThread(-1);
@@ -30,7 +39,7 @@ juce::String Engine::loadFile(const juce::File& path) {
 }
 juce::String Engine::selectMidi(const juce::String& id) {
     stopSession(); devices.removeAudioCallback(this); stopThread(-1);
-    if(midi) midi->sendMessageNow(juce::MidiMessage::allNotesOff(1));
+    sendAllNotesOff();
     midi=id.isEmpty()?nullptr:juce::MidiOutput::openDevice(id);
     devices.addAudioCallback(this);
     return !id.isEmpty() && !midi?"MIDI device could not be opened.":juce::String{};
@@ -41,8 +50,8 @@ void Engine::audioDeviceAboutToStart(juce::AudioIODevice* device) {
     bufferSize=device->getCurrentBufferSizeSamples();
     inputLatency=device->getInputLatencyInSamples(); outputLatency=device->getOutputLatencyInSamples();
     features.reset(); states.reset(); phrases.reset(); midiEvents.reset();
-    extractor.prepare(sr); tracker.reset(); generator=band::Generator{}; clock.reset(); scheduler.reset(); synth.prepare(sr);
-    samples=0; latest={}; audioEpoch=0; midiPitch=-1; wasAudible=false; gain=0;
+    extractor.prepare(sr); tracker.reset(); generator=band::Arranger{}; clock.reset(); performance.prepare(sr);
+    samples=0; latest={}; audioEpoch=0; pendingMidi.fill({}); gain=0;
     demoPhase=0; demoAge=hatAge=100; demoBeat=0;
     bpm=110; confidence=0; locked=false; active=false;
     { juce::ScopedLock lock(errorMutex); error.clear(); }
@@ -50,7 +59,7 @@ void Engine::audioDeviceAboutToStart(juce::AudioIODevice* device) {
 }
 void Engine::audioDeviceStopped() {
     stopThread(-1); active=false; locked=false;
-    if(midi) midi->sendMessageNow(juce::MidiMessage::allNotesOff(1));
+    sendAllNotesOff();
 }
 void Engine::audioDeviceError(const juce::String& message) {
     playing=false; juce::ScopedLock lock(errorMutex); error=message;
@@ -58,6 +67,7 @@ void Engine::audioDeviceError(const juce::String& message) {
 void Engine::run() {
     uint32_t request=resetRequest.load(); bool wasPlaying=false;
     int64_t planned=-1; uint32_t plannedEpoch=0;
+    uint32_t previousMidiDrops=droppedMidi.load();
     while(!threadShouldExit()) {
         band::Feature f; bool worked=false;
         while(features.pop(f)) {
@@ -65,7 +75,7 @@ void Engine::run() {
             bool play=playing.load(); auto reset=resetRequest.load();
             if(reset!=request || play!=wasPlaying) {
                 tracker.reset(f.time,bpm.load()); planned=-1; request=reset;
-                if(midi) midi->sendMessageNow(juce::MidiMessage::allNotesOff(1));
+                sendAllNotesOff();
             }
             wasPlaying=play;
             double tap=tapBpm.exchange(0);
@@ -82,17 +92,19 @@ void Engine::run() {
                 if(planned<bar-1) planned=bar-1;
                 band::Settings settings{key.load(),static_cast<band::Genre>(genre.load()),density.load(),variation.load()};
                 while(planned<bar+2) {
-                    auto phrase=generator.generate(planned+1,state,settings);
+                    auto phrase=generator.generate(planned+1,state,settings,sectionMode.load());
                     if(!phrases.push(phrase)) break;
                     ++planned;
                 }
             }
         }
         MidiEvent event;
+        auto midiDrops=droppedMidi.load();
+        if(midiDrops!=previousMidiDrops) {sendAllNotesOff();previousMidiDrops=midiDrops;}
         while(midiEvents.pop(event)) if(midi) {
-            if(event.pitch<0) midi->sendMessageNow(juce::MidiMessage::allNotesOff(1));
+            if(event.velocity==0) midi->sendMessageNow(juce::MidiMessage::noteOff(event.channel,event.pitch));
             else if(event.epoch==tracker.current().epoch && playing.load())
-                midi->sendMessageNow(juce::MidiMessage::noteOn(1,event.pitch,event.velocity));
+                midi->sendMessageNow(juce::MidiMessage::noteOn(event.channel,event.pitch,event.velocity));
         }
         if(!worked) wait(1);
     }
@@ -102,21 +114,20 @@ void Engine::audioDeviceIOCallbackWithContext(const float* const* in,int ni,floa
     band::State update;
     while(states.pop(update)) latest=update;
     if(latest.epoch!=audioEpoch) {
-        audioEpoch=latest.epoch; scheduler.reset(audioEpoch); synth.release();
-        if(midiPitch>=0 && !midiEvents.push({-1,0,audioEpoch})) ++droppedMidi;
-        midiPitch=-1;
+        for(int channel=1;channel<=3;++channel) releaseMidi(channel);
+        audioEpoch=latest.epoch; performance.reset(audioEpoch);
     }
-    band::Phrase phrase; while(phrases.pop(phrase)) scheduler.submit(phrase);
+    band::Arrangement phrase;
+    while(phrases.pop(phrase)) performance.submit(phrase);
     auto projected=latest;
     projected.beat+=((inputLatency.load()+outputLatency.load())/sr+timingOffsetMs.load()*.001)*latest.bpm/60;
     clock.follow(projected,samples/sr);
     const bool audible=playing.load() && clock.active();
-    const bool useBass=bass.load(), useClick=click.load(); const int src=source.load();
-    if(!audible || !useBass) {
-        synth.release();
-        if(midiPitch>=0) { if(!midiEvents.push({-1,0,audioEpoch})) ++droppedMidi; midiPitch=-1; }
-    }
-    if(wasAudible && !audible) synth.release(); wasAudible=audible;
+    const std::array<bool,3> enabled{bass.load(),guitar.load() && !latest.fill,piano.load() && !latest.fill};
+    const std::array<float,3> volumes{bassVolume.load(),guitarVolume.load(),pianoVolume.load()};
+    const bool useClick=click.load(); const int src=source.load();
+    for(int track=0;track<3;++track) if(!audible || !enabled[static_cast<size_t>(track)]) releaseMidi(track+1);
+    if(!audible) performance.release();
     double sum=0; float peak=0;
     for(int i=0;i<n;++i,++samples) {
         const double t=samples/sr;
@@ -143,19 +154,26 @@ void Engine::audioDeviceIOCallbackWithContext(const float* const* in,int ni,floa
         if(extractor.process(input,t,f) && !features.push(f)) ++droppedFeatures;
         if(audible) {
             double b=clock.advance(sr);
-            if(midiPitch>=0 && b>=midiOffBeat) { if(!midiEvents.push({-1,0,audioEpoch})) ++droppedMidi; midiPitch=-1; }
-            scheduler.tick(b,latest.bpm,useClick,useBass,[&](int pitch,float vel,double duration){
-                if(pitch<0) synth.click(vel>.8f);
-                else {
-                    synth.note(pitch,vel,duration);
-                    if(midiPitch>=0 && !midiEvents.push({-1,0,audioEpoch})) ++droppedMidi;
-                    if(!midiEvents.push({pitch,vel,audioEpoch})) ++droppedMidi;
-                    midiPitch=pitch; midiOffBeat=b+duration*latest.bpm/60;
+            currentRoot=performance.rootAt(b);currentSection=performance.sectionAt(b);
+            for(auto& note:pendingMidi) if(note.pitch>=0 && b>=note.offBeat) {
+                queueMidi({note.pitch,0,audioEpoch,note.channel});note.pitch=-1;
+            }
+            performance.tick(b,latest.bpm,useClick,enabled,[&](int track,int pitch,float vel,double duration){
+                // Repeated pitches receive their note-off before the new attack.
+                for(auto& note:pendingMidi) if(note.pitch==pitch && note.channel==track+1) {
+                    queueMidi({pitch,0,audioEpoch,track+1});note.pitch=-1;
                 }
+                auto slot=std::find_if(pendingMidi.begin(),pendingMidi.end(),[](const auto& note){return note.pitch<0;});
+                if(slot==pendingMidi.end()) {
+                    slot=std::min_element(pendingMidi.begin(),pendingMidi.end(),[](const auto& a,const auto& c){return a.offBeat<c.offBeat;});
+                    queueMidi({slot->pitch,0,audioEpoch,slot->channel});
+                }
+                queueMidi({pitch,vel,audioEpoch,track+1});
+                *slot={pitch,track+1,b+duration*latest.bpm/60};
             });
         }
         gain+=(volume.load()-gain)*.001;
-        float value=static_cast<float>(gain)*synth.process();
+        float value=static_cast<float>(gain)*performance.process(volumes);
         // File/demo monitoring only; the live microphone is never routed back to PA.
         if(src!=0 && playing.load()) value+=input*.22f*static_cast<float>(gain);
         value=std::clamp(value,-.95f,.95f);

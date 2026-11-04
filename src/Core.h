@@ -73,6 +73,7 @@ struct Phrase {
     int count=0, root=0;
     int64_t bar=0;
     uint32_t epoch=0;
+    int third=3, fifth=7;
 };
 class Generator {
     uint32_t seed=42;
@@ -101,7 +102,9 @@ class Synth {
     float velocity=0, env=0, clickEnv=0;
     double clickPhase=0;
     bool releasing=false;
+    int timbre=0;
 public:
+    void setTimbre(int value) noexcept { timbre=value; }
     void prepare(double sampleRate) { sr=sampleRate; silence(); }
     void silence() noexcept { env=0; velocity=0; clickEnv=0; }
     void note(int pitch, float vel, double seconds) noexcept;
@@ -118,7 +121,9 @@ class Scheduler {
     int64_t lastFallback=-1;
     int fallbackPitch=36;
     uint32_t epoch=0;
+    bool fallbackEnabled=true;
 public:
+    void setFallbackEnabled(bool enabled) noexcept { fallbackEnabled=enabled; }
     void reset(uint32_t e=0) { valid.fill(false); lastBeat=-1; lastClick=-1; lastFallback=-1; fallbackPitch=36; epoch=e; }
     void submit(const Phrase& p) noexcept;
     template<class Sink> void tick(double beat, double bpm, bool click, bool bass, Sink&& sink) noexcept {
@@ -137,9 +142,63 @@ public:
             }
             if(beat>=4*(p.bar+1)) valid[k]=false;
         }
-        if(bass && !hasCurrent && integer>lastFallback) sink(fallbackPitch,.4f,.25*60/bpm);
+        if(bass && fallbackEnabled && !hasCurrent && integer>lastFallback) sink(fallbackPitch,.4f,.25*60/bpm);
         lastFallback=integer;
         lastBeat=beat;
+    }
+};
+
+enum class Section { Groove, Build, Breakdown };
+struct Arrangement {
+    std::array<Phrase,3> tracks; // Bass, guitar, piano. One shared harmony per bar.
+    Section section=Section::Groove;
+};
+class Arranger {
+    Generator bassist;
+public:
+    Arrangement generate(int64_t bar, const State& state, Settings settings, int sectionMode=0);
+};
+class PolySynth {
+    std::array<Synth,8> voices;
+    size_t nextVoice=0;
+public:
+    void prepare(double sampleRate,int timbre);
+    void note(int pitch,float velocity,double duration) noexcept;
+    void release() noexcept;
+    float process() noexcept;
+};
+class BandPerformance {
+    std::array<Scheduler,3> schedulers;
+    Synth bassVoice;
+    Synth clickVoice;
+    PolySynth guitarVoice,pianoVoice;
+    std::array<int64_t,4> harmonyBars{-1,-1,-1,-1};
+    std::array<int,4> roots{},sections{};
+    uint32_t epoch=0;
+public:
+    void prepare(double sampleRate);
+    void reset(uint32_t epoch);
+    void submit(const Arrangement& arrangement) noexcept;
+    void release() noexcept;
+    int rootAt(double beat) const noexcept;
+    int sectionAt(double beat) const noexcept;
+    float process(const std::array<float,3>& volumes) noexcept;
+    template<class Sink> void tick(double beat,double bpm,bool click,const std::array<bool,3>& enabled,Sink&& sink) noexcept {
+        if(!enabled[0]) bassVoice.release();
+        if(!enabled[1]) guitarVoice.release();
+        if(!enabled[2]) pianoVoice.release();
+        for(int track=0;track<3;++track) {
+            schedulers[static_cast<size_t>(track)].tick(beat,bpm,click && track==0,enabled[static_cast<size_t>(track)],
+                [&](int pitch,float velocity,double duration) {
+                    if(pitch<0) clickVoice.click(velocity>.8f);
+                    else {
+                        if(track==0) bassVoice.note(pitch,velocity,duration);
+                        if(track==1) guitarVoice.note(pitch,velocity,duration);
+                        if(track==2) pianoVoice.note(pitch,velocity,duration);
+                        sink(track,pitch,velocity,duration);
+                    }
+                });
+        }
     }
 };
 }

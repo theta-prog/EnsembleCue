@@ -1,6 +1,6 @@
 /build*/
 /third_party/
-/results/*.wav
-/results/*.mid
-/results/*.png
+/results/**/*.wav
+/results/**/*.mid
+/results/**/*.png
 /.tools/

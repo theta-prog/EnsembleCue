@@ -1,0 +1,4 @@
+Device: Yamaha Steinberg USB ASIO / ASIO
+BPM 102.004; locked 1; overruns 0; feature drops 0
+CPU seconds 2.96875; private bytes delta -98304
+Stalled seconds 0
